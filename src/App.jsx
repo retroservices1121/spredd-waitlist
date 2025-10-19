@@ -143,7 +143,7 @@ export default function WaitlistSignup() {
                     Please make sure to follow us for announcements and updates!
                   </p>
                   <a 
-                    href="https://x.com/spreddai" 
+                    href="https://x.com/spreddterminal" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105"
