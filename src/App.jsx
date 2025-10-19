@@ -70,7 +70,7 @@ export default function WaitlistSignup() {
           <img 
             src="/logo.png" 
             alt="Spredd Terminal Logo" 
-            className="h-32 w-auto"
+            className="h-48 w-auto"
           />
         </div>
 
