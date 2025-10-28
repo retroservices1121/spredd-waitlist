@@ -6,6 +6,8 @@ export default function WaitlistSignup() {
   const [isLoading, setIsLoading] = useState(false);
   const [userData, setUserData] = useState(null);
   const [error, setError] = useState(null);
+  const [walletAddress, setWalletAddress] = useState('');
+  const [walletSaved, setWalletSaved] = useState(false);
 
   // Check if returning from Twitter OAuth
   useEffect(() => {
@@ -52,6 +54,46 @@ export default function WaitlistSignup() {
     setConnected(false);
     setUserData(null);
     setError(null);
+    setWalletAddress('');
+    setWalletSaved(false);
+  };
+
+  const handleSaveWallet = async () => {
+    if (!walletAddress.trim()) {
+      setError('Please enter a wallet address');
+      return;
+    }
+
+    // Basic Ethereum address validation (0x followed by 40 hex characters)
+    const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
+    if (!ethAddressRegex.test(walletAddress)) {
+      setError('Please enter a valid Base wallet address');
+      return;
+    }
+
+    try {
+      // Call API to save wallet address
+      const response = await fetch('/api/wallet/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          twitter_username: userData?.username,
+          wallet_address: walletAddress
+        })
+      });
+
+      if (response.ok) {
+        setWalletSaved(true);
+        setError(null);
+      } else {
+        setError('Failed to save wallet address. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error saving wallet:', err);
+      setError('Failed to save wallet address. Please try again.');
+    }
   };
 
   return (
@@ -68,9 +110,9 @@ export default function WaitlistSignup() {
         {/* Logo - REPLACE WITH YOUR LOGO URL */}
         <div className="mb-6 animate-fade-in flex justify-center">
           <img 
-            src="/logo.png" 
-            alt="Spredd Terminal Logo" 
-            className="h-48 w-auto"
+            src="https://via.placeholder.com/150x80/000000/FFFFFF?text=YOUR+LOGO" 
+            alt="Logo" 
+            className="h-20 w-auto"
           />
         </div>
 
@@ -138,12 +180,12 @@ export default function WaitlistSignup() {
                   Welcome, <span className="text-white font-semibold">@{userData?.username}</span>
                 </p>
                 
-                <div className="bg-black/30 rounded-lg p-4">
+                <div className="bg-black/30 rounded-lg p-4 mb-4">
                   <p className="text-sm text-gray-200 mb-3">
                     Please make sure to follow us for announcements and updates!
                   </p>
                   <a 
-                    href="https://x.com/spreddterminal" 
+                    href="https://x.com/spreddai" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105"
@@ -153,6 +195,35 @@ export default function WaitlistSignup() {
                     </svg>
                     Follow Us
                   </a>
+                </div>
+
+                {/* Base Wallet Input */}
+                <div className="bg-black/30 rounded-lg p-4 mt-4">
+                  <p className="text-sm text-gray-200 mb-3 font-semibold">
+                    Add your Base wallet address (optional)
+                  </p>
+                  {!walletSaved ? (
+                    <>
+                      <input
+                        type="text"
+                        value={walletAddress}
+                        onChange={(e) => setWalletAddress(e.target.value)}
+                        placeholder="0x..."
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/50 transition-all mb-3"
+                      />
+                      <button
+                        onClick={handleSaveWallet}
+                        className="w-full px-6 py-3 bg-orange-500 hover:bg-orange-600 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105"
+                      >
+                        Save Wallet Address
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2 text-green-400">
+                      <Check size={20} />
+                      <span>Wallet address saved!</span>
+                    </div>
+                  )}
                 </div>
               </div>
               
