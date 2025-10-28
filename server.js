@@ -29,7 +29,9 @@ async function initDatabase() {
         twitter_id VARCHAR(255) UNIQUE NOT NULL,
         twitter_username VARCHAR(255) NOT NULL,
         twitter_display_name VARCHAR(255),
-        created_at TIMESTAMP DEFAULT NOW()
+        wallet_address VARCHAR(42),
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
       )
     `);
     console.log('✅ Database table initialized');
@@ -156,12 +158,42 @@ app.get('/api/waitlist/count', async (req, res) => {
 app.get('/api/waitlist/all', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT twitter_username, twitter_display_name, created_at FROM waitlist ORDER BY created_at DESC'
+      'SELECT twitter_username, twitter_display_name, wallet_address, created_at FROM waitlist ORDER BY created_at DESC'
     );
     res.json({ users: result.rows });
   } catch (error) {
     console.error('Error getting waitlist:', error);
     res.status(500).json({ error: 'Failed to get waitlist' });
+  }
+});
+
+// Save wallet address
+app.post('/api/wallet/save', async (req, res) => {
+  const { twitter_username, wallet_address } = req.body;
+
+  if (!twitter_username || !wallet_address) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  // Validate Ethereum address format
+  const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
+  if (!ethAddressRegex.test(wallet_address)) {
+    return res.status(400).json({ error: 'Invalid wallet address format' });
+  }
+
+  try {
+    await pool.query(
+      `UPDATE waitlist 
+       SET wallet_address = $1, updated_at = NOW() 
+       WHERE twitter_username = $2`,
+      [wallet_address, twitter_username]
+    );
+
+    console.log(`✅ Wallet saved for @${twitter_username}: ${wallet_address}`);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error saving wallet:', error);
+    res.status(500).json({ error: 'Failed to save wallet address' });
   }
 });
 
