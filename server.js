@@ -23,6 +23,7 @@ const pool = new Pool({
 // Initialize database table
 async function initDatabase() {
   try {
+    // Create table if it doesn't exist
     await pool.query(`
       CREATE TABLE IF NOT EXISTS waitlist (
         id SERIAL PRIMARY KEY,
@@ -35,6 +36,30 @@ async function initDatabase() {
       )
     `);
     console.log('✅ Database table initialized');
+
+    // Add wallet_address column if it doesn't exist (for existing tables)
+    await pool.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT FROM information_schema.columns 
+          WHERE table_name = 'waitlist' AND column_name = 'wallet_address'
+        ) THEN
+          ALTER TABLE waitlist ADD COLUMN wallet_address VARCHAR(42);
+          RAISE NOTICE 'Added wallet_address column';
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT FROM information_schema.columns 
+          WHERE table_name = 'waitlist' AND column_name = 'updated_at'
+        ) THEN
+          ALTER TABLE waitlist ADD COLUMN updated_at TIMESTAMP DEFAULT NOW();
+          RAISE NOTICE 'Added updated_at column';
+        END IF;
+      END $$;
+    `);
+    console.log('✅ Database schema updated');
+
   } catch (error) {
     console.error('❌ Database initialization error:', error);
   }
@@ -64,11 +89,9 @@ app.get('/api/auth/initiate', (req, res) => {
   // Generate random state for CSRF protection
   const state = Math.random().toString(36).substring(7);
   
-  // For production, you should generate proper PKCE challenge
-  const codeChallenge = 'challenge';
-
-  const scopes = 'tweet.read users.read offline.access';
-  const authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=plain`;
+  // For OAuth 2.0 without PKCE
+  const scopes = 'tweet.read users.read';
+  const authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}`;
 
   res.json({ authUrl });
 });
@@ -96,8 +119,7 @@ app.get('/api/auth/callback', async (req, res) => {
       body: new URLSearchParams({
         code,
         grant_type: 'authorization_code',
-        redirect_uri: redirectUri,
-        code_verifier: 'challenge'
+        redirect_uri: redirectUri
       })
     });
 
@@ -143,7 +165,7 @@ app.get('/api/auth/callback', async (req, res) => {
   }
 });
 
-// Get waitlist count (optional)
+// Get waitlist count
 app.get('/api/waitlist/count', async (req, res) => {
   try {
     const result = await pool.query('SELECT COUNT(*) FROM waitlist');
@@ -154,7 +176,7 @@ app.get('/api/waitlist/count', async (req, res) => {
   }
 });
 
-// Get all waitlist entries (optional - protect this in production!)
+// Get all waitlist entries
 app.get('/api/waitlist/all', async (req, res) => {
   try {
     const result = await pool.query(
