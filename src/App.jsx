@@ -110,9 +110,9 @@ export default function WaitlistSignup() {
         {/* Logo - REPLACE WITH YOUR LOGO URL */}
         <div className="mb-6 animate-fade-in flex justify-center">
           <img 
-            src="https://via.placeholder.com/150x80/000000/FFFFFF?text=YOUR+LOGO" 
-            alt="Logo" 
-            className="h-20 w-auto"
+            src="/logo.png" 
+            alt="Spredd Terminal Logo" 
+            className="h-48 w-auto"
           />
         </div>
 
